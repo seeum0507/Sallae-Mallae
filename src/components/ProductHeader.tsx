@@ -1,10 +1,42 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { Star, ThumbsUp, Heart } from "lucide-react";
 import { Product } from "../data/products";
+import { toggleLike, fetchLikeStatus } from "../api";
+import { useAuth } from "../context/AuthContext";
+
 interface ProductHeaderProps {
   product: Product;
 }
+
 export function ProductHeader({ product }: ProductHeaderProps) {
+  const { isLoggedIn } = useAuth();
+  const [liked, setLiked] = useState(false);
+  const [likeLoading, setLikeLoading] = useState(false);
+
+  useEffect(() => {
+    if (!isLoggedIn) {
+      setLiked(false);
+      return;
+    }
+    fetchLikeStatus(product.id).then((d) => setLiked(d.liked));
+  }, [product.id, isLoggedIn]);
+
+  const handleLike = async () => {
+    if (!isLoggedIn) {
+      alert("로그인이 필요합니다.");
+      return;
+    }
+    setLikeLoading(true);
+    try {
+      const result = await toggleLike(product.id);
+      setLiked(result.liked);
+    } catch (err) {
+      console.error("찜 실패:", err);
+    } finally {
+      setLikeLoading(false);
+    }
+  };
+
   return (
     <section className="flex flex-col md:flex-row gap-8 py-8">
       {/* Left: Product Illustration */}
@@ -158,10 +190,32 @@ export function ProductHeader({ product }: ProductHeaderProps) {
           <button className="flex-1 bg-mint-500 hover:bg-mint-600 text-white font-semibold py-4 px-6 rounded-2xl transition-colors shadow-sm shadow-mint-500/20">
             가격 비교하기
           </button>
-          <button className="flex-none p-4 border border-gray-200 hover:border-mint-500 hover:bg-mint-50 text-gray-600 hover:text-mint-600 rounded-2xl transition-colors group">
-            <Heart className="w-6 h-6 group-hover:fill-mint-100" />
+          <button
+            onClick={handleLike}
+            disabled={likeLoading}
+            className={`flex-none p-4 border rounded-2xl transition-all duration-200 group ${
+              liked
+                ? "border-red-300 bg-red-50 text-red-500 hover:bg-red-100"
+                : "border-gray-200 hover:border-mint-500 hover:bg-mint-50 text-gray-600 hover:text-mint-600"
+            } ${likeLoading ? "opacity-60 cursor-not-allowed" : ""}`}
+            title={liked ? "찜 취소" : "찜하기"}
+          >
+            <Heart
+              className={`w-6 h-6 transition-all duration-200 ${
+                liked
+                  ? "fill-red-400 text-red-400"
+                  : "group-hover:fill-mint-100"
+              }`}
+            />
           </button>
         </div>
+
+        {/* 찜 상태 텍스트 */}
+        {liked && (
+          <p className="text-xs text-red-400 mt-2 text-right">
+            ❤️ 찜한 상품이에요
+          </p>
+        )}
       </div>
     </section>
   );
