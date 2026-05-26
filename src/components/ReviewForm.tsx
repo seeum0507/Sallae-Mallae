@@ -1,9 +1,116 @@
-import React, { useState } from "react";
-import { Star, Camera, Send } from "lucide-react";
-export function ReviewForm() {
+import React, { useState, useRef } from "react";
+import { Link } from "react-router-dom";
+import { Star, Send, ImagePlus, X } from "lucide-react";
+import { postReview, uploadImages } from "../api";
+import { useAuth } from "../context/AuthContext";
+
+interface ReviewFormProps {
+  productId: string;
+}
+
+export function ReviewForm({ productId }: ReviewFormProps) {
+  const { isLoggedIn } = useAuth();
   const [rating, setRating] = useState(0);
   const [hoverRating, setHoverRating] = useState(0);
   const [content, setContent] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
+  const [error, setError] = useState("");
+
+  // 이미지 관련 상태
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const [previewUrls, setPreviewUrls] = useState<string[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    const remaining = 5 - selectedFiles.length;
+    if (remaining <= 0) return;
+    const newFiles = files.slice(0, remaining);
+
+    setSelectedFiles((prev) => [...prev, ...newFiles]);
+    const newPreviews = newFiles.map((f) => URL.createObjectURL(f));
+    setPreviewUrls((prev) => [...prev, ...newPreviews]);
+
+    // input 초기화 (같은 파일 다시 선택 가능하도록)
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
+  const removeImage = (index: number) => {
+    URL.revokeObjectURL(previewUrls[index]);
+    setSelectedFiles((prev) => prev.filter((_, i) => i !== index));
+    setPreviewUrls((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const handleSubmit = async () => {
+    if (!rating || !content.trim()) return;
+    setError("");
+    setSubmitting(true);
+    try {
+      let imageUrls: string[] = [];
+
+      // 이미지가 있으면 먼저 업로드
+      if (selectedFiles.length > 0) {
+        imageUrls = await uploadImages(selectedFiles);
+      }
+
+      await postReview({ productId, rating, content, images: imageUrls });
+
+      setSubmitted(true);
+      setRating(0);
+      setContent("");
+      // 미리보기 URL 해제
+      previewUrls.forEach((url) => URL.revokeObjectURL(url));
+      setSelectedFiles([]);
+      setPreviewUrls([]);
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  if (!isLoggedIn) {
+    return (
+      <section className="py-8 border-t border-gray-100">
+        <div className="bg-gray-50 rounded-3xl p-8 text-center border border-gray-100">
+          <h3 className="text-lg font-bold text-gray-900 mb-2">
+            리뷰를 작성하려면 로그인이 필요해요
+          </h3>
+          <p className="text-gray-500 text-sm mb-5">
+            로그인 후 소중한 경험을 공유해주세요!
+          </p>
+          <Link
+            to="/login"
+            className="inline-block bg-mint-500 hover:bg-mint-600 text-white font-bold px-6 py-3 rounded-xl transition-colors"
+          >
+            로그인하기
+          </Link>
+        </div>
+      </section>
+    );
+  }
+
+  if (submitted) {
+    return (
+      <section className="py-8 border-t border-gray-100">
+        <div className="bg-mint-50 rounded-3xl p-8 text-center border border-mint-100">
+          <div className="text-4xl mb-3">🎉</div>
+          <h3 className="text-lg font-bold text-gray-900 mb-2">
+            리뷰가 등록됐어요!
+          </h3>
+          <p className="text-gray-500 text-sm mb-4">소중한 리뷰 감사합니다.</p>
+          <button
+            onClick={() => setSubmitted(false)}
+            className="text-mint-600 font-medium text-sm hover:underline"
+          >
+            리뷰 더 작성하기
+          </button>
+        </div>
+      </section>
+    );
+  }
+
   return (
     <section className="py-8 border-t border-gray-100">
       <div className="bg-white rounded-3xl p-6 md:p-8 shadow-[0_0_40px_rgba(0,0,0,0.03)] border border-gray-100">
@@ -11,7 +118,13 @@ export function ReviewForm() {
           리뷰를 작성해보세요
         </h3>
 
-        {/* Star Rating Input */}
+        {error && (
+          <div className="bg-red-50 border border-red-100 text-red-600 text-sm rounded-xl px-4 py-3 mb-4">
+            {error}
+          </div>
+        )}
+
+        {/* 별점 */}
         <div className="flex flex-col items-center justify-center mb-8">
           <span className="text-sm font-medium text-gray-500 mb-3">
             상품은 어떠셨나요?
@@ -53,35 +166,85 @@ export function ReviewForm() {
           </div>
         </div>
 
-        {/* Text Input */}
+        {/* 리뷰 텍스트 */}
         <div className="relative mb-4">
           <textarea
             className="w-full bg-gray-50 border border-gray-200 rounded-2xl p-4 min-h-[120px] text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-mint-500/20 focus:border-mint-500 transition-colors resize-none"
-            placeholder="이 제품에 대한 솔직한 후기를 남겨주세요. 자취생들에게 큰 도움이 됩니다!"
+            placeholder="이 제품에 대한 솔직한 후기를 남겨주세요!"
             value={content}
             onChange={(e) => setContent(e.target.value)}
           />
         </div>
 
-        {/* Actions */}
-        <div className="flex items-center justify-between">
-          <button
-            type="button"
-            className="flex items-center gap-2 text-sm font-medium text-gray-500 hover:text-gray-900 px-4 py-2 rounded-xl hover:bg-gray-50 transition-colors"
-          >
-            <Camera className="w-5 h-5" />
-            <span>사진 첨부</span>
-          </button>
+        {/* 이미지 첨부 (선택사항) */}
+        <div className="mb-6">
+          {/* 이미지 추가 버튼 */}
+          {selectedFiles.length < 5 && (
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              className="flex items-center gap-2 text-sm font-medium text-gray-500 hover:text-mint-600 transition-colors border border-dashed border-gray-300 hover:border-mint-400 hover:bg-mint-50 px-4 py-2.5 rounded-xl w-fit"
+            >
+              <ImagePlus className="w-4 h-4" />
+              <span>
+                사진 추가{" "}
+                <span className="text-gray-400 font-normal">
+                  ({selectedFiles.length}/5, 선택사항)
+                </span>
+              </span>
+            </button>
+          )}
 
+          {/* 숨겨진 파일 input */}
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            multiple
+            className="hidden"
+            onChange={handleImageSelect}
+          />
+
+          {/* 미리보기 */}
+          {previewUrls.length > 0 && (
+            <div className="flex gap-2 mt-3 flex-wrap">
+              {previewUrls.map((url, i) => (
+                <div
+                  key={i}
+                  className="relative w-20 h-20 rounded-xl overflow-hidden border border-gray-200 group"
+                >
+                  <img
+                    src={url}
+                    alt={`첨부 이미지 ${i + 1}`}
+                    className="w-full h-full object-cover"
+                  />
+                  {/* 삭제 버튼 */}
+                  <button
+                    type="button"
+                    onClick={() => removeImage(i)}
+                    className="absolute top-1 right-1 bg-black/60 hover:bg-black/80 text-white rounded-full w-5 h-5 flex items-center justify-center transition-colors"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* 제출 버튼 */}
+        <div className="flex justify-end">
           <button
             type="button"
+            onClick={handleSubmit}
+            disabled={!rating || !content.trim() || submitting}
             className={`flex items-center gap-2 px-6 py-3 rounded-xl font-bold text-white transition-all ${
-              rating > 0 && content.length > 0
+              rating > 0 && content.trim() && !submitting
                 ? "bg-mint-500 hover:bg-mint-600 shadow-md shadow-mint-500/20"
                 : "bg-gray-300 cursor-not-allowed"
             }`}
           >
-            <span>리뷰 등록하기</span>
+            <span>{submitting ? "등록 중..." : "리뷰 등록하기"}</span>
             <Send className="w-4 h-4" />
           </button>
         </div>
