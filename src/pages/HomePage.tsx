@@ -1,36 +1,41 @@
-import React, { useState, Component } from "react";
+import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { motion } from "framer-motion";
+import { motion, Variants } from "framer-motion";
 import { Sparkles, Search } from "lucide-react";
-import { products, categories } from "../data/products";
+import { categories, Product } from "../data/products";
 import { ProductCard } from "../components/ProductCard";
-const fadeInUp = {
-  hidden: {
-    opacity: 0,
-    y: 20,
-  },
-  visible: {
-    opacity: 1,
-    y: 0,
-    transition: {
-      duration: 0.5,
-    },
-  },
+import { fetchProducts } from "../api";
+
+const fadeInUp: Variants = {
+  hidden: { opacity: 0, y: 20 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.5 } },
 };
+
 export function HomePage() {
   const navigate = useNavigate();
   const [query, setQuery] = useState("");
+  const [products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchProducts()
+      .then((data) => setProducts(data))
+      .catch((err) => console.error("상품 불러오기 실패:", err))
+      .finally(() => setLoading(false));
+  }, []);
+
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     if (query.trim()) {
       navigate(`/search?q=${encodeURIComponent(query.trim())}`);
     }
   };
+
   const popularProducts = products.slice(0, 4);
   const aiRecommendedProducts = products.slice(4, 8);
+
   return (
     <div className="pb-24">
-      {/* Hero Section */}
       <section className="bg-mint-50/50 pt-16 pb-20 px-4">
         <div className="max-w-3xl mx-auto text-center">
           <motion.div initial="hidden" animate="visible" variants={fadeInUp}>
@@ -41,7 +46,7 @@ export function HomePage() {
             <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-6 tracking-tight leading-tight">
               실패 없는 자취 생활,
               <br />
-              <span className="text-mint-500">자취꿀템 AI</span>와 함께
+              <span className="text-mint-500">살래말래? AI</span>와 함께
               시작하세요
             </h1>
             <p className="text-gray-600 mb-10 text-lg">
@@ -49,7 +54,6 @@ export function HomePage() {
               추천해드려요.
             </p>
 
-            {/* Big Search Bar */}
             <form
               onSubmit={handleSearch}
               className="relative max-w-2xl mx-auto shadow-lg shadow-mint-500/10 rounded-full"
@@ -72,7 +76,6 @@ export function HomePage() {
               </button>
             </form>
 
-            {/* Quick Categories */}
             <div className="flex flex-wrap justify-center gap-3 mt-8">
               {categories.slice(1, 6).map((cat) => (
                 <Link
@@ -89,7 +92,6 @@ export function HomePage() {
       </section>
 
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 mt-16 space-y-20">
-        {/* Popular Products */}
         <section>
           <div className="flex items-end justify-between mb-8">
             <div>
@@ -107,14 +109,24 @@ export function HomePage() {
               전체보기 &gt;
             </Link>
           </div>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
-            {popularProducts.map((product) => (
-              <ProductCard key={product.id} product={product} />
-            ))}
-          </div>
+          {loading ? (
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
+              {[...Array(4)].map((_, i) => (
+                <div
+                  key={i}
+                  className="bg-gray-100 rounded-2xl aspect-square animate-pulse"
+                />
+              ))}
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
+              {popularProducts.map((product) => (
+                <ProductCard key={product.id} product={product} />
+              ))}
+            </div>
+          )}
         </section>
 
-        {/* AI Recommended */}
         <section>
           <div className="flex items-end justify-between mb-8">
             <div>
@@ -132,11 +144,22 @@ export function HomePage() {
               전체보기 &gt;
             </Link>
           </div>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
-            {aiRecommendedProducts.map((product) => (
-              <ProductCard key={product.id} product={product} />
-            ))}
-          </div>
+          {loading ? (
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
+              {[...Array(4)].map((_, i) => (
+                <div
+                  key={i}
+                  className="bg-gray-100 rounded-2xl aspect-square animate-pulse"
+                />
+              ))}
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
+              {aiRecommendedProducts.map((product) => (
+                <ProductCard key={product.id} product={product} />
+              ))}
+            </div>
+          )}
         </section>
       </div>
     </div>
