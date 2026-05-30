@@ -1,12 +1,17 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 import { ArrowLeft, Star, Heart } from "lucide-react";
-import { getProductById } from "../data/products";
+import { fetchProduct } from "../api";
+
 export function PhotoReviewsPage() {
-  const { id } = useParams<{
-    id: string;
-  }>();
-  const product = getProductById(id || "");
+  const { id } = useParams<{ id: string }>();
+  const [product, setProduct] = useState<any>(null);
+
+  useEffect(() => {
+    if (!id) return;
+    fetchProduct(id).then((data) => setProduct(data));
+  }, [id]);
+
   if (!product) {
     return (
       <div className="min-h-[60vh] flex flex-col items-center justify-center">
@@ -19,14 +24,12 @@ export function PhotoReviewsPage() {
       </div>
     );
   }
-  // Duplicate photos to simulate a larger gallery for the "more" page
+
   const allPhotos = [
     ...product.photoReviews,
-    ...product.photoReviews.map((p) => ({
-      ...p,
-      id: p.id + 100,
-    })),
+    ...product.photoReviews.map((p: any) => ({ ...p, id: p.id + 100 })),
   ];
+
   return (
     <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-24">
       <div className="mb-8">
@@ -44,7 +47,7 @@ export function PhotoReviewsPage() {
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-        {allPhotos.map((photo, idx) => (
+        {allPhotos.map((photo: any, idx: number) => (
           <div
             key={`${photo.id}-${idx}`}
             className="relative aspect-square rounded-2xl overflow-hidden group cursor-pointer bg-gray-100"
@@ -54,7 +57,6 @@ export function PhotoReviewsPage() {
               alt="User review"
               className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
             />
-            {/* Hover Overlay */}
             <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-4">
               <div className="flex items-center justify-between text-white">
                 <div className="flex items-center gap-1">
