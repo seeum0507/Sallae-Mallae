@@ -1,13 +1,33 @@
-import React from "react";
+import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Sparkles, Mail, Lock, User } from "lucide-react";
+import { signup as signupApi } from "../api";
+import { useAuth } from "../context/AuthContext";
+
 export function SignupPage() {
   const navigate = useNavigate();
-  const handleSignup = (e: React.FormEvent) => {
+  const { login } = useAuth();
+  const [nickname, setNickname] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Mock signup - redirect to login
-    navigate("/login");
+    setError("");
+    setLoading(true);
+    try {
+      const data = await signupApi(nickname, email, password);
+      login(data.token, data.user);
+      navigate("/");
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
   };
+
   return (
     <div className="min-h-[80vh] flex items-center justify-center px-4 py-12">
       <div className="w-full max-w-md bg-white rounded-3xl p-8 shadow-[0_0_40px_rgba(0,0,0,0.03)] border border-gray-100">
@@ -17,14 +37,20 @@ export function SignupPage() {
           </div>
           <h1 className="text-2xl font-bold text-gray-900 mb-2">회원가입</h1>
           <p className="text-gray-500 text-sm">
-            자취꿀템 AI의 멤버가 되어보세요
+            살래말래? AI의 멤버가 되어보세요
           </p>
         </div>
+
+        {error && (
+          <div className="bg-red-50 border border-red-100 text-red-600 text-sm rounded-xl px-4 py-3 mb-4">
+            {error}
+          </div>
+        )}
 
         <form onSubmit={handleSignup} className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              이름 (닉네임)
+              닉네임
             </label>
             <div className="relative">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -33,6 +59,8 @@ export function SignupPage() {
               <input
                 type="text"
                 required
+                value={nickname}
+                onChange={(e) => setNickname(e.target.value)}
                 className="block w-full pl-10 pr-3 py-3 border border-gray-200 rounded-xl bg-gray-50 placeholder-gray-400 focus:outline-none focus:bg-white focus:ring-2 focus:ring-mint-500/20 focus:border-mint-500 transition-colors"
                 placeholder="자취 3년차 민지"
               />
@@ -50,6 +78,8 @@ export function SignupPage() {
               <input
                 type="email"
                 required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
                 className="block w-full pl-10 pr-3 py-3 border border-gray-200 rounded-xl bg-gray-50 placeholder-gray-400 focus:outline-none focus:bg-white focus:ring-2 focus:ring-mint-500/20 focus:border-mint-500 transition-colors"
                 placeholder="hello@example.com"
               />
@@ -67,6 +97,8 @@ export function SignupPage() {
               <input
                 type="password"
                 required
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
                 className="block w-full pl-10 pr-3 py-3 border border-gray-200 rounded-xl bg-gray-50 placeholder-gray-400 focus:outline-none focus:bg-white focus:ring-2 focus:ring-mint-500/20 focus:border-mint-500 transition-colors"
                 placeholder="8자 이상 입력해주세요"
               />
@@ -75,9 +107,14 @@ export function SignupPage() {
 
           <button
             type="submit"
-            className="w-full bg-mint-500 hover:bg-mint-600 text-white font-bold py-3.5 rounded-xl transition-colors shadow-sm shadow-mint-500/20 mt-6"
+            disabled={loading}
+            className={`w-full text-white font-bold py-3.5 rounded-xl transition-colors shadow-sm mt-2 ${
+              loading
+                ? "bg-gray-300 cursor-not-allowed"
+                : "bg-mint-500 hover:bg-mint-600 shadow-mint-500/20"
+            }`}
           >
-            가입하기
+            {loading ? "가입 중..." : "가입하기"}
           </button>
         </form>
 
