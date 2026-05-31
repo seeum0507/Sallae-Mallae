@@ -1,24 +1,33 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { useSearchParams, Link } from "react-router-dom";
 import { Search } from "lucide-react";
-import { searchProducts, categories } from "../data/products";
+import { categories, Product } from "../data/products";
 import { ProductCard } from "../components/ProductCard";
+import { fetchProducts } from "../api";
+
 export function SearchResultsPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const query = searchParams.get("q") || "";
   const categoryKey = searchParams.get("category") || "all";
-  const results = searchProducts(query, categoryKey);
+  const [results, setResults] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    setLoading(true);
+    fetchProducts(query, categoryKey)
+      .then((data) => setResults(data))
+      .catch((err) => console.error("검색 실패:", err))
+      .finally(() => setLoading(false));
+  }, [query, categoryKey]);
+
   const handleCategoryClick = (key: string) => {
-    if (key === "all") {
-      searchParams.delete("category");
-    } else {
-      searchParams.set("category", key);
-    }
+    if (key === "all") searchParams.delete("category");
+    else searchParams.set("category", key);
     setSearchParams(searchParams);
   };
+
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-24">
-      {/* Search Header */}
       <div className="mb-8">
         <h1 className="text-2xl font-bold text-gray-900 mb-2">
           {query ? (
@@ -34,7 +43,6 @@ export function SearchResultsPage() {
         </p>
       </div>
 
-      {/* Categories Filter */}
       <div className="flex flex-wrap gap-2 mb-8 pb-6 border-b border-gray-100">
         {categories.map((cat) => {
           const isActive = categoryKey === cat.key;
@@ -54,8 +62,16 @@ export function SearchResultsPage() {
         })}
       </div>
 
-      {/* Results Grid */}
-      {results.length > 0 ? (
+      {loading ? (
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
+          {[...Array(8)].map((_, i) => (
+            <div
+              key={i}
+              className="bg-gray-100 rounded-2xl aspect-square animate-pulse"
+            />
+          ))}
+        </div>
+      ) : results.length > 0 ? (
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
           {results.map((product) => (
             <ProductCard key={product.id} product={product} />
