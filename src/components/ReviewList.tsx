@@ -1,35 +1,57 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { Star, ThumbsUp, MessageCircle, MoreHorizontal } from "lucide-react";
+import {
+  Star,
+  ThumbsUp,
+  MessageCircle,
+  MoreHorizontal,
+  Send,
+} from "lucide-react";
 import { Product } from "../data/products";
-import { likeReview } from "../api";
+import { likeReview, fetchReviews, fetchComments, postComment } from "../api";
+import { useAuth } from "../context/AuthContext";
+
+interface Comment {
+  id: number;
+  reviewId: string;
+  author: string;
+  initial: string;
+  avatarColor: string;
+  content: string;
+  createdAt: string;
+}
 
 interface ReviewListProps {
   product: Product;
+  onRefresh?: () => void;
 }
 
-export function ReviewList({ product }: ReviewListProps) {
-  // 리뷰별 helpful 카운트 상태 (초기값: 각 리뷰의 helpful)
+export function ReviewList({ product, onRefresh }: ReviewListProps) {
+  const { isLoggedIn } = useAuth();
+  const [reviews, setReviews] = useState<any[]>([]);
+  const [sort, setSort] = useState("helpful");
   const [helpfulMap, setHelpfulMap] = useState<Record<string, number>>({});
-  // 이미 누른 리뷰 ID 집합
   const [likedSet, setLikedSet] = useState<Set<string>>(new Set());
+  const [openCommentId, setOpenCommentId] = useState<string | null>(null);
+  const [commentsMap, setCommentsMap] = useState<Record<string, Comment[]>>({});
+  const [commentInput, setCommentInput] = useState("");
+  const [commentLoading, setCommentLoading] = useState(false);
 
-  if (!product.reviews || product.reviews.length === 0) return null;
+  // ✅ 항상 API에서 최신 리뷰(이미지 포함) 가져오기
+  useEffect(() => {
+    fetchReviews(product.id, sort).then((data) => setReviews(data));
+  }, [sort, product.id, product]);
+
+  if (!reviews || reviews.length === 0) return null;
 
   const handleHelpful = async (reviewId: string, currentHelpful: number) => {
-    // 이미 누른 경우 무시
     if (likedSet.has(reviewId)) return;
-
-    // 낙관적 업데이트: 먼저 UI 반영
     const prevCount = helpfulMap[reviewId] ?? currentHelpful;
     setHelpfulMap((prev) => ({ ...prev, [reviewId]: prevCount + 1 }));
     setLikedSet((prev) => new Set(prev).add(reviewId));
-
     try {
       await likeReview(reviewId);
     } catch (err) {
-      // 실패 시 롤백
-      console.error("도움이 돼요 실패:", err);
       setHelpfulMap((prev) => ({ ...prev, [reviewId]: prevCount }));
       setLikedSet((prev) => {
         const next = new Set(prev);
@@ -39,22 +61,62 @@ export function ReviewList({ product }: ReviewListProps) {
     }
   };
 
+  const handleToggleComments = async (reviewId: string) => {
+    if (openCommentId === reviewId) {
+      setOpenCommentId(null);
+      return;
+    }
+    setOpenCommentId(reviewId);
+    if (!commentsMap[reviewId]) {
+      const data = await fetchComments(reviewId);
+      setCommentsMap((prev) => ({ ...prev, [reviewId]: data }));
+    }
+  };
+
+  const handlePostComment = async (reviewId: string) => {
+    if (!commentInput.trim() || commentLoading) return;
+    setCommentLoading(true);
+    try {
+      const newComment = await postComment(reviewId, commentInput);
+      setCommentsMap((prev) => ({
+        ...prev,
+        [reviewId]: [...(prev[reviewId] || []), newComment],
+      }));
+      setCommentInput("");
+      setReviews((prev) =>
+        prev.map((r) =>
+          r.id === reviewId ? { ...r, replies: r.replies + 1 } : r
+        )
+      );
+    } catch (err: any) {
+      alert(err.message);
+    } finally {
+      setCommentLoading(false);
+    }
+  };
+
   return (
     <section className="py-8 border-t border-gray-100">
       <div className="flex items-center justify-between mb-8">
         <h3 className="text-xl font-bold text-gray-900">전체 리뷰</h3>
-        <select className="bg-transparent border-none text-sm font-medium text-gray-600 focus:ring-0 cursor-pointer outline-none">
-          <option>도움순</option>
-          <option>최신순</option>
-          <option>별점 높은순</option>
-          <option>별점 낮은순</option>
+        <select
+          value={sort}
+          onChange={(e) => setSort(e.target.value)}
+          className="bg-transparent border border-gray-200 rounded-lg px-3 py-1.5 text-sm font-medium text-gray-600 focus:ring-0 cursor-pointer outline-none"
+        >
+          <option value="helpful">도움순</option>
+          <option value="latest">최신순</option>
+          <option value="rating_high">별점 높은순</option>
+          <option value="rating_low">별점 낮은순</option>
         </select>
       </div>
 
       <div className="space-y-6">
-        {product.reviews.map((review) => {
+        {reviews.map((review) => {
           const currentHelpful = helpfulMap[review.id] ?? review.helpful;
           const isLiked = likedSet.has(review.id);
+          const isCommentOpen = openCommentId === review.id;
+          const comments = commentsMap[review.id] || [];
 
           return (
             <div
@@ -100,7 +162,7 @@ export function ReviewList({ product }: ReviewListProps) {
                 {review.content}
               </p>
 
-              {/* 리뷰 이미지 */}
+              {/* ✅ 이미지 표시 */}
               {review.images && review.images.length > 0 && (
                 <div className="flex gap-2 mb-4 flex-wrap">
                   {review.images.map((url: string, idx: number) => (
@@ -133,11 +195,95 @@ export function ReviewList({ product }: ReviewListProps) {
                   />
                   <span>도움돼요 {currentHelpful}</span>
                 </button>
-                <button className="flex items-center gap-1.5 text-xs font-medium text-gray-500 hover:text-gray-900 transition-colors">
+
+                <button
+                  onClick={() => handleToggleComments(review.id)}
+                  className={`flex items-center gap-1.5 text-xs font-medium transition-colors ${
+                    isCommentOpen
+                      ? "text-mint-600"
+                      : "text-gray-500 hover:text-gray-900"
+                  }`}
+                >
                   <MessageCircle className="w-3.5 h-3.5" />
                   <span>댓글 {review.replies}</span>
                 </button>
               </div>
+
+              {isCommentOpen && (
+                <div className="mt-4 bg-gray-50 rounded-2xl p-4">
+                  {comments.length > 0 ? (
+                    <div className="space-y-3 mb-4">
+                      {comments.map((comment) => (
+                        <div
+                          key={comment.id}
+                          className="flex items-start gap-2.5"
+                        >
+                          <div
+                            className={`w-7 h-7 rounded-full flex items-center justify-center font-bold text-xs flex-shrink-0 ${comment.avatarColor}`}
+                          >
+                            {comment.initial}
+                          </div>
+                          <div className="flex-1 bg-white rounded-xl px-3 py-2 border border-gray-100">
+                            <div className="flex items-center gap-2 mb-0.5">
+                              <span className="text-xs font-bold text-gray-900">
+                                {comment.author}
+                              </span>
+                              <span className="text-xs text-gray-400">
+                                {new Date(comment.createdAt).toLocaleDateString(
+                                  "ko-KR"
+                                )}
+                              </span>
+                            </div>
+                            <p className="text-xs text-gray-700 leading-relaxed">
+                              {comment.content}
+                            </p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-xs text-gray-400 mb-4 text-center py-2">
+                      첫 댓글을 남겨보세요!
+                    </p>
+                  )}
+
+                  {isLoggedIn ? (
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="text"
+                        value={commentInput}
+                        onChange={(e) => setCommentInput(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" && !e.shiftKey) {
+                            e.preventDefault();
+                            handlePostComment(review.id);
+                          }
+                        }}
+                        placeholder="댓글을 입력하세요..."
+                        className="flex-1 bg-white border border-gray-200 rounded-xl px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-mint-500/20 focus:border-mint-500"
+                      />
+                      <button
+                        onClick={() => handlePostComment(review.id)}
+                        disabled={!commentInput.trim() || commentLoading}
+                        className={`p-2 rounded-xl transition-colors ${
+                          commentInput.trim() && !commentLoading
+                            ? "bg-mint-500 hover:bg-mint-600 text-white"
+                            : "bg-gray-200 text-gray-400 cursor-not-allowed"
+                        }`}
+                      >
+                        <Send className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  ) : (
+                    <Link
+                      to="/login"
+                      className="block text-center text-xs text-mint-600 font-medium hover:underline py-1"
+                    >
+                      로그인 후 댓글을 남길 수 있어요
+                    </Link>
+                  )}
+                </div>
+              )}
             </div>
           );
         })}
