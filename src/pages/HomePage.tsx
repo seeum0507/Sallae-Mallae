@@ -32,7 +32,9 @@ export function HomePage() {
   };
 
   const popularProducts = products.slice(0, 4);
-  const aiRecommendedProducts = products.slice(4, 8);
+  const aiRecommendedProducts = products
+    .filter((p) => p.aiAnalyzed && p.aiSentiment.positive >= 90)
+    .slice(0, 4);
 
   return (
     <div className="pb-24">
@@ -153,11 +155,17 @@ export function HomePage() {
                 />
               ))}
             </div>
-          ) : (
+          ) : aiRecommendedProducts.length > 0 ? (
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
               {aiRecommendedProducts.map((product) => (
                 <ProductCard key={product.id} product={product} />
               ))}
+            </div>
+          ) : (
+            <div className="bg-mint-50/50 border border-mint-100 rounded-2xl py-12 px-6 text-center">
+              <p className="text-gray-500">
+                아직 AI 만족도 90% 이상인 상품이 없어요.
+              </p>
             </div>
           )}
         </section>
