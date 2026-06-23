@@ -12,8 +12,20 @@ export interface Product {
   thumbnail: string;
   aiSentiment: { positive: number; negative: number };
   aiSummary: { pros: string; cons: string; conclusion: string };
+  aiAnalyzed: boolean;
   keywords: { id: string; label: string; count: number; sentences: string[] }[];
-  photoReviews: { id: number; url: string; rating: number; likes: number }[];
+  // ✅ 변경: url 하나가 아니라 urls 배열 + 작성자 정보
+  photoReviews: {
+    id: string;
+    urls: string[];
+    rating: number;
+    likes: number;
+    content: string | null;
+    author: string | null;
+    date: string | null;
+    initial?: string;
+    avatarColor?: string;
+  }[];
   reviews: {
     id: string;
     author: string;
