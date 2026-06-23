@@ -1,4 +1,5 @@
 const BASE_URL = "http://localhost:3001/api";
+const UPLOAD_URL = "http://localhost:3001";
 
 function getToken(): string | null {
   return localStorage.getItem("token");
@@ -9,7 +10,6 @@ function authHeaders(): Record<string, string> {
   return token ? { Authorization: `Bearer ${token}` } : {};
 }
 
-// 상품
 export async function fetchProducts(query = "", category = "all") {
   const params = new URLSearchParams();
   if (query) params.set("q", query);
@@ -23,7 +23,6 @@ export async function fetchProduct(id: string) {
   return res.json();
 }
 
-// 찜 상태 조회
 export async function fetchLikeStatus(
   productId: string
 ): Promise<{ liked: boolean }> {
@@ -36,7 +35,6 @@ export async function fetchLikeStatus(
   return res.json();
 }
 
-// 찜 토글
 export async function toggleLike(
   productId: string
 ): Promise<{ liked: boolean }> {
@@ -49,7 +47,6 @@ export async function toggleLike(
   return data;
 }
 
-// 리뷰
 export async function fetchReviews(productId: string, sort = "helpful") {
   const res = await fetch(
     `${BASE_URL}/reviews/product/${productId}?sort=${sort}`
@@ -80,11 +77,10 @@ export async function likeReview(reviewId: string) {
   return res.json();
 }
 
-// 이미지 업로드 (리뷰용)
 export async function uploadImages(files: File[]): Promise<string[]> {
   const formData = new FormData();
   files.forEach((file) => formData.append("images", file));
-  const res = await fetch("http://localhost:3001/api/upload", {
+  const res = await fetch(`${UPLOAD_URL}/api/upload`, {
     method: "POST",
     body: formData,
   });
@@ -93,7 +89,6 @@ export async function uploadImages(files: File[]): Promise<string[]> {
   return data.urls;
 }
 
-// 인증
 export async function login(email: string, password: string) {
   const res = await fetch(`${BASE_URL}/auth/login`, {
     method: "POST",
@@ -126,9 +121,41 @@ export async function fetchMe() {
   return res.json();
 }
 
+export async function changePassword(
+  currentPassword: string,
+  newPassword: string
+) {
+  const res = await fetch(`${BASE_URL}/auth/password`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json", ...authHeaders() },
+    body: JSON.stringify({ currentPassword, newPassword }),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || "비밀번호 변경 실패");
+  return data;
+}
+
 export async function analyzeProduct(productId: string) {
   const res = await fetch(`${BASE_URL}/ai/analyze/${productId}`, {
     method: "POST",
   });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || "AI 분석 실패");
+  return data;
+}
+
+export async function fetchComments(reviewId: string) {
+  const res = await fetch(`${BASE_URL}/reviews/${reviewId}/comments`);
   return res.json();
+}
+
+export async function postComment(reviewId: string, content: string) {
+  const res = await fetch(`${BASE_URL}/reviews/${reviewId}/comments`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...authHeaders() },
+    body: JSON.stringify({ content }),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || "댓글 등록 실패");
+  return data;
 }
