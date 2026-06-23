@@ -6,9 +6,10 @@ import { useAuth } from "../context/AuthContext";
 
 interface ReviewFormProps {
   productId: string;
+  onReviewSubmitted?: () => void; // 추가: 제출 후 부모에게 알림
 }
 
-export function ReviewForm({ productId }: ReviewFormProps) {
+export function ReviewForm({ productId, onReviewSubmitted }: ReviewFormProps) {
   const { isLoggedIn } = useAuth();
   const [rating, setRating] = useState(0);
   const [hoverRating, setHoverRating] = useState(0);
@@ -16,8 +17,6 @@ export function ReviewForm({ productId }: ReviewFormProps) {
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState("");
-
-  // 이미지 관련 상태
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [previewUrls, setPreviewUrls] = useState<string[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -27,12 +26,9 @@ export function ReviewForm({ productId }: ReviewFormProps) {
     const remaining = 5 - selectedFiles.length;
     if (remaining <= 0) return;
     const newFiles = files.slice(0, remaining);
-
     setSelectedFiles((prev) => [...prev, ...newFiles]);
     const newPreviews = newFiles.map((f) => URL.createObjectURL(f));
     setPreviewUrls((prev) => [...prev, ...newPreviews]);
-
-    // input 초기화 (같은 파일 다시 선택 가능하도록)
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
@@ -48,21 +44,19 @@ export function ReviewForm({ productId }: ReviewFormProps) {
     setSubmitting(true);
     try {
       let imageUrls: string[] = [];
-
-      // 이미지가 있으면 먼저 업로드
       if (selectedFiles.length > 0) {
         imageUrls = await uploadImages(selectedFiles);
       }
-
       await postReview({ productId, rating, content, images: imageUrls });
-
       setSubmitted(true);
       setRating(0);
       setContent("");
-      // 미리보기 URL 해제
       previewUrls.forEach((url) => URL.revokeObjectURL(url));
       setSelectedFiles([]);
       setPreviewUrls([]);
+
+      // 부모 컴포넌트에 제출 완료 알림 (상품 데이터 새로고침용)
+      onReviewSubmitted?.();
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -99,7 +93,10 @@ export function ReviewForm({ productId }: ReviewFormProps) {
           <h3 className="text-lg font-bold text-gray-900 mb-2">
             리뷰가 등록됐어요!
           </h3>
-          <p className="text-gray-500 text-sm mb-4">소중한 리뷰 감사합니다.</p>
+          <p className="text-gray-500 text-sm mb-1">소중한 리뷰 감사합니다.</p>
+          <p className="text-xs text-mint-600 mb-4">
+            ✨ AI가 리뷰를 분석 중이에요. 잠시 후 분석 결과가 업데이트됩니다.
+          </p>
           <button
             onClick={() => setSubmitted(false)}
             className="text-mint-600 font-medium text-sm hover:underline"
@@ -124,7 +121,6 @@ export function ReviewForm({ productId }: ReviewFormProps) {
           </div>
         )}
 
-        {/* 별점 */}
         <div className="flex flex-col items-center justify-center mb-8">
           <span className="text-sm font-medium text-gray-500 mb-3">
             상품은 어떠셨나요?
@@ -166,7 +162,6 @@ export function ReviewForm({ productId }: ReviewFormProps) {
           </div>
         </div>
 
-        {/* 리뷰 텍스트 */}
         <div className="relative mb-4">
           <textarea
             className="w-full bg-gray-50 border border-gray-200 rounded-2xl p-4 min-h-[120px] text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-mint-500/20 focus:border-mint-500 transition-colors resize-none"
@@ -176,9 +171,7 @@ export function ReviewForm({ productId }: ReviewFormProps) {
           />
         </div>
 
-        {/* 이미지 첨부 (선택사항) */}
         <div className="mb-6">
-          {/* 이미지 추가 버튼 */}
           {selectedFiles.length < 5 && (
             <button
               type="button"
@@ -194,8 +187,6 @@ export function ReviewForm({ productId }: ReviewFormProps) {
               </span>
             </button>
           )}
-
-          {/* 숨겨진 파일 input */}
           <input
             ref={fileInputRef}
             type="file"
@@ -204,8 +195,6 @@ export function ReviewForm({ productId }: ReviewFormProps) {
             className="hidden"
             onChange={handleImageSelect}
           />
-
-          {/* 미리보기 */}
           {previewUrls.length > 0 && (
             <div className="flex gap-2 mt-3 flex-wrap">
               {previewUrls.map((url, i) => (
@@ -218,7 +207,6 @@ export function ReviewForm({ productId }: ReviewFormProps) {
                     alt={`첨부 이미지 ${i + 1}`}
                     className="w-full h-full object-cover"
                   />
-                  {/* 삭제 버튼 */}
                   <button
                     type="button"
                     onClick={() => removeImage(i)}
@@ -232,7 +220,6 @@ export function ReviewForm({ productId }: ReviewFormProps) {
           )}
         </div>
 
-        {/* 제출 버튼 */}
         <div className="flex justify-end">
           <button
             type="button"
