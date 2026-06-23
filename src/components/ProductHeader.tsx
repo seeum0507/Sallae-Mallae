@@ -42,7 +42,6 @@ export function ProductHeader({ product }: ProductHeaderProps) {
       {/* Left: Product Illustration */}
       <div className="w-full md:w-[45%] flex-shrink-0">
         <div className="bg-gray-50 rounded-3xl aspect-square flex items-center justify-center p-8 relative overflow-hidden group">
-          {/* Decorative background circle */}
           <div className="absolute inset-0 bg-mint-50 opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-3xl" />
 
           {product.thumbnail === "svg-washing-machine" ? (
@@ -52,7 +51,6 @@ export function ProductHeader({ product }: ProductHeaderProps) {
               fill="none"
               xmlns="http://www.w3.org/2000/svg"
             >
-              {/* Main Body */}
               <rect
                 x="20"
                 y="20"
@@ -63,14 +61,12 @@ export function ProductHeader({ product }: ProductHeaderProps) {
                 stroke="#E5E7EB"
                 strokeWidth="4"
               />
-              {/* Top Panel */}
               <path
                 d="M20 72C20 43.2812 43.2812 20 72 20H168C196.719 20 220 43.2812 220 72V80H20V72Z"
                 fill="#F9FAFB"
                 stroke="#E5E7EB"
                 strokeWidth="4"
               />
-              {/* Controls */}
               <circle cx="180" cy="50" r="8" fill="#D1D5DB" />
               <circle cx="150" cy="50" r="6" fill="#E5E7EB" />
               <circle cx="130" cy="50" r="6" fill="#E5E7EB" />
@@ -84,7 +80,6 @@ export function ProductHeader({ product }: ProductHeaderProps) {
                 fillOpacity="0.1"
               />
               <rect x="44" y="46" width="30" height="8" rx="2" fill="#10B981" />
-              {/* Door Outer */}
               <circle
                 cx="120"
                 cy="160"
@@ -93,15 +88,12 @@ export function ProductHeader({ product }: ProductHeaderProps) {
                 stroke="#E5E7EB"
                 strokeWidth="4"
               />
-              {/* Door Inner / Glass */}
               <circle cx="120" cy="160" r="54" fill="#ECFDF5" />
-              {/* Water/Reflection detail */}
               <path
                 d="M76 180C86 195 102 204 120 204C144.3 204 164 184.3 164 160C164 155 163 150 161 146C155 156 140 164 120 164C95 164 80 156 76 146C74 150 73 155 73 160C73 168 74 174 76 180Z"
                 fill="#A7F3D0"
                 fillOpacity="0.5"
               />
-              {/* Base/Feet */}
               <rect
                 x="40"
                 y="260"
@@ -171,25 +163,19 @@ export function ProductHeader({ product }: ProductHeaderProps) {
           </div>
         </div>
 
-        {/* Price */}
-        <div className="mb-8">
-          <div className="flex items-end gap-3">
+        {/* ✅ mt-auto 제거: 별점 줄 바로 아래에 가격이 위치하도록 함 */}
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
             <span className="text-3xl font-bold text-gray-900">
               ₩{product.price.toLocaleString()}
             </span>
             {product.originalPrice > product.price && (
-              <span className="text-lg text-gray-400 line-through mb-1">
+              <span className="text-lg text-gray-400 line-through">
                 ₩{product.originalPrice.toLocaleString()}
               </span>
             )}
           </div>
-        </div>
 
-        {/* CTAs */}
-        <div className="flex items-center gap-3 mt-auto">
-          <button className="flex-1 bg-mint-500 hover:bg-mint-600 text-white font-semibold py-4 px-6 rounded-2xl transition-colors shadow-sm shadow-mint-500/20">
-            가격 비교하기
-          </button>
           <button
             onClick={handleLike}
             disabled={likeLoading}
