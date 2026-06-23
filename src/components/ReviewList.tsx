@@ -37,14 +37,25 @@ export function ReviewList({ product, onRefresh }: ReviewListProps) {
   const [commentInput, setCommentInput] = useState("");
   const [commentLoading, setCommentLoading] = useState(false);
 
-  // ✅ 항상 API에서 최신 리뷰(이미지 포함) 가져오기
   useEffect(() => {
     fetchReviews(product.id, sort).then((data) => setReviews(data));
   }, [sort, product.id, product]);
 
+  // ✅ 리뷰 로드 시 likedByMe 기반으로 likedSet 초기화
+  useEffect(() => {
+    const liked = new Set(
+      reviews.filter((r: any) => r.likedByMe).map((r: any) => r.id)
+    );
+    setLikedSet(liked);
+  }, [reviews]);
+
   if (!reviews || reviews.length === 0) return null;
 
   const handleHelpful = async (reviewId: string, currentHelpful: number) => {
+    if (!isLoggedIn) {
+      alert("로그인이 필요합니다.");
+      return;
+    }
     if (likedSet.has(reviewId)) return;
     const prevCount = helpfulMap[reviewId] ?? currentHelpful;
     setHelpfulMap((prev) => ({ ...prev, [reviewId]: prevCount + 1 }));
@@ -162,7 +173,6 @@ export function ReviewList({ product, onRefresh }: ReviewListProps) {
                 {review.content}
               </p>
 
-              {/* ✅ 이미지 표시 */}
               {review.images && review.images.length > 0 && (
                 <div className="flex gap-2 mb-4 flex-wrap">
                   {review.images.map((url: string, idx: number) => (

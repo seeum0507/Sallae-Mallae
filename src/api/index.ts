@@ -19,7 +19,9 @@ export async function fetchProducts(query = "", category = "all") {
 }
 
 export async function fetchProduct(id: string) {
-  const res = await fetch(`${BASE_URL}/products/${id}`);
+  const res = await fetch(`${BASE_URL}/products/${id}`, {
+    headers: authHeaders(),
+  });
   return res.json();
 }
 
@@ -49,7 +51,10 @@ export async function toggleLike(
 
 export async function fetchReviews(productId: string, sort = "helpful") {
   const res = await fetch(
-    `${BASE_URL}/reviews/product/${productId}?sort=${sort}`
+    `${BASE_URL}/reviews/product/${productId}?sort=${sort}`,
+    {
+      headers: authHeaders(),
+    }
   );
   return res.json();
 }
@@ -73,8 +78,11 @@ export async function postReview(data: {
 export async function likeReview(reviewId: string) {
   const res = await fetch(`${BASE_URL}/reviews/${reviewId}/helpful`, {
     method: "PATCH",
+    headers: { ...authHeaders() },
   });
-  return res.json();
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || "도움돼요 실패");
+  return data;
 }
 
 export async function uploadImages(files: File[]): Promise<string[]> {

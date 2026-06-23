@@ -35,7 +35,6 @@ export function AllReviewsPage() {
   const [sort, setSort] = useState("helpful");
   const [loading, setLoading] = useState(true);
 
-  // ✅ ReviewList와 동일한 인터랙션 상태들
   const [helpfulMap, setHelpfulMap] = useState<Record<string, number>>({});
   const [likedSet, setLikedSet] = useState<Set<string>>(new Set());
   const [openCommentId, setOpenCommentId] = useState<string | null>(null);
@@ -56,8 +55,19 @@ export function AllReviewsPage() {
       .finally(() => setLoading(false));
   }, [id, sort]);
 
-  // ✅ 도움돼요 버튼 핸들러
+  // ✅ 리뷰 로드 시 likedByMe 기반으로 likedSet 초기화
+  useEffect(() => {
+    const liked = new Set(
+      reviews.filter((r: any) => r.likedByMe).map((r: any) => r.id)
+    );
+    setLikedSet(liked);
+  }, [reviews]);
+
   const handleHelpful = async (reviewId: string, currentHelpful: number) => {
+    if (!isLoggedIn) {
+      alert("로그인이 필요합니다.");
+      return;
+    }
     if (likedSet.has(reviewId)) return;
     const prevCount = helpfulMap[reviewId] ?? currentHelpful;
     setHelpfulMap((prev) => ({ ...prev, [reviewId]: prevCount + 1 }));
@@ -74,7 +84,6 @@ export function AllReviewsPage() {
     }
   };
 
-  // ✅ 댓글 영역 열기/닫기 + 최초 로드
   const handleToggleComments = async (reviewId: string) => {
     if (openCommentId === reviewId) {
       setOpenCommentId(null);
@@ -87,7 +96,6 @@ export function AllReviewsPage() {
     }
   };
 
-  // ✅ 댓글 작성
   const handlePostComment = async (reviewId: string) => {
     if (!commentInput.trim() || commentLoading) return;
     setCommentLoading(true);
@@ -218,7 +226,6 @@ export function AllReviewsPage() {
                   {review.content}
                 </p>
 
-                {/* ✅ 이미지 표시 */}
                 {review.images && review.images.length > 0 && (
                   <div className="flex gap-2 mb-5 flex-wrap">
                     {review.images.map((url: string, idx: number) => (
@@ -237,7 +244,6 @@ export function AllReviewsPage() {
                 )}
 
                 <div className="flex items-center gap-4">
-                  {/* ✅ 도움돼요 버튼: onClick 연결 */}
                   <button
                     onClick={() => handleHelpful(review.id, review.helpful)}
                     disabled={isLiked}
@@ -253,7 +259,6 @@ export function AllReviewsPage() {
                     <span>도움돼요 {currentHelpful}</span>
                   </button>
 
-                  {/* ✅ 댓글 버튼: onClick 연결 */}
                   <button
                     onClick={() => handleToggleComments(review.id)}
                     className={`flex items-center gap-1.5 text-sm font-medium transition-colors ${
@@ -267,7 +272,6 @@ export function AllReviewsPage() {
                   </button>
                 </div>
 
-                {/* ✅ 댓글 영역 */}
                 {isCommentOpen && (
                   <div className="mt-4 bg-gray-50 rounded-2xl p-4">
                     {comments.length > 0 ? (

@@ -157,10 +157,7 @@ export function ProductHeader({ product }: ProductHeaderProps) {
             </span>
           </div>
           <div className="w-1 h-1 rounded-full bg-gray-300 hidden sm:block"></div>
-          <div className="flex items-center gap-1.5 text-mint-600 bg-mint-50 px-2.5 py-1 rounded-md text-sm font-medium">
-            <ThumbsUp className="w-4 h-4" />
-            <span>추천 {product.recommendCount.toLocaleString()}</span>
-          </div>
+          <div className="flex items-center gap-1.5 text-mint-600 bg-mint-50 px-2.5 py-1 rounded-md text-sm font-medium"></div>
         </div>
 
         {/* ✅ mt-auto 제거: 별점 줄 바로 아래에 가격이 위치하도록 함 */}
