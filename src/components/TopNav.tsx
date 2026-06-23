@@ -62,18 +62,6 @@ export function TopNav() {
             >
               가전
             </Link>
-            <Link
-              to="/search?category=all"
-              className="hover:text-mint-600 transition-colors"
-            >
-              가구
-            </Link>
-            <Link
-              to="/search?category=all"
-              className="hover:text-mint-600 transition-colors"
-            >
-              생활용품
-            </Link>
           </div>
 
           {isLoggedIn ? (
