@@ -2,10 +2,26 @@ import React from "react";
 import { Link } from "react-router-dom";
 import { Star, Sparkles } from "lucide-react";
 import { Product } from "../data/products";
+
+// DB 링크 이미지가 깨졌을 때 호출할 AI 이미지 생성 엔드포인트
+const AI_IMAGE_BASE = "http://localhost:3001/api/ai/product-image";
+
 interface ProductCardProps {
   product: Product;
 }
 export function ProductCard({ product }: ProductCardProps) {
+  // 처음엔 DB의 링크를 그대로 사용
+  const [imgSrc, setImgSrc] = React.useState(product.thumbnail);
+  // AI 이미지로 한 번 교체한 뒤에는 다시 에러나도 무한루프 안 돌게 방어
+  const [usedAIImage, setUsedAIImage] = React.useState(false);
+
+  const handleImageError = () => {
+    if (!usedAIImage) {
+      setUsedAIImage(true);
+      setImgSrc(`${AI_IMAGE_BASE}/${product.id}`);
+    }
+  };
+
   return (
     <Link to={`/product/${product.id}`} className="group block">
       <div className="bg-white rounded-2xl overflow-hidden border border-gray-100 shadow-sm hover:shadow-md transition-all duration-300 h-full flex flex-col">
@@ -89,8 +105,9 @@ export function ProductCard({ product }: ProductCardProps) {
             </div>
           ) : (
             <img
-              src={product.thumbnail}
+              src={imgSrc}
               alt={product.name}
+              onError={handleImageError}
               className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
             />
           )}
