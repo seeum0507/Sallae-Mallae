@@ -41,12 +41,17 @@ export function ReviewList({ product, onRefresh }: ReviewListProps) {
     fetchReviews(product.id, sort).then((data) => setReviews(data));
   }, [sort, product.id, product]);
 
-  // ✅ 리뷰 로드 시 likedByMe 기반으로 likedSet 초기화
+  // ✅ 리뷰 로드 시 likedByMe 기반으로 likedSet 갱신
+  // 단, 댓글 작성 등으로 reviews가 바뀔 때 낙관적으로 누른 좋아요가
+  // 풀리지 않도록 기존 likedSet과 합친다(merge).
   useEffect(() => {
-    const liked = new Set(
-      reviews.filter((r: any) => r.likedByMe).map((r: any) => r.id)
-    );
-    setLikedSet(liked);
+    setLikedSet((prev) => {
+      const next = new Set(prev);
+      reviews.forEach((r: any) => {
+        if (r.likedByMe) next.add(r.id);
+      });
+      return next;
+    });
   }, [reviews]);
 
   if (!reviews || reviews.length === 0) return null;

@@ -55,14 +55,7 @@ export function TopNav() {
         </form>
 
         <nav className="flex items-center gap-4 flex-shrink-0">
-          <div className="hidden md:flex items-center gap-6 text-sm font-medium text-gray-600">
-            <Link
-              to="/search?category=washing-machine"
-              className="hover:text-mint-600 transition-colors"
-            >
-              가전
-            </Link>
-          </div>
+          <div className="hidden md:flex items-center gap-6 text-sm font-medium text-gray-600"></div>
 
           {isLoggedIn ? (
             <div className="flex items-center gap-2">
